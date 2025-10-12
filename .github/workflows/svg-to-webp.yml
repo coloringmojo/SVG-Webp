@@ -1,0 +1,38 @@
+name: Convert SVG to WebP
+
+on:
+  push:
+    paths:
+      - "svg/*.svg"   # Trigger only when SVGs are added or modified
+
+jobs:
+  convert:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y imagemagick webp
+
+      - name: Convert SVG to optimized WebP
+        run: |
+          mkdir -p webp
+          for file in svg/*.svg; do
+            base=$(basename "$file" .svg)
+            echo "Converting $file → webp/${base}.webp"
+            cwebp -quiet -q 85 "$file" -o "webp/${base}.webp"
+          done
+
+      - name: Commit and push WebP files
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+          git add webp/
+          git diff --cached --quiet || git commit -m "Auto: SVG → WebP conversion"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
